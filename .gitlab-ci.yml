@@ -1,0 +1,55 @@
+stages:
+  - build
+  - package
+  - uat
+  - prod
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_DRIVER: overlay2
+  tag_name: ""
+
+build_docker_image:
+  stage: build
+  image: docker:latest
+  script:
+    - docker build -f ./Dockerfile -t devops/pinger:latest .
+  
+before_script:
+  - tag_name=$(date +%s)
+  - git config --global user.email "${GITLAB_USER_EMAIL}"
+  - git config --global user.name "${GITLAB_USER_NAME}"
+
+packing:
+  stage: package
+  script:
+    - git tag $tag_name
+    - git push --tags https://gitlab-ci-token:glpat-TRTyY6gtvuKxBkGi6Z41@gitlab.com/codingpractice3/CodingTest.git
+  only:
+    - master
+ # when: manual
+
+deploy_uat:
+   stage: uat
+   script:
+     - docker run devops/pinger:latest
+   before_script:
+     - cd /app
+     - git pull origin master
+   only:
+     - master
+
+deploy_prod:
+   stage: prod
+   script:
+     - docker run devops/pinger:latest
+   before_script:
+     - cd /app
+     - git pull origin master
+   only:
+     - master
+   when: manual
+
+
